@@ -10,8 +10,12 @@
     "start": "node index.js"
   },
   "dependencies": {
+    "cookie-parser": "^1.4.1",
     "ejs": "2.4.1",
-    "express": "4.13.3"
+    "express": "4.13.3",
+    "express-session": "^1.13.0",
+    "oauth": "^0.9.14",
+    "session": "^0.1.0"
   },
   "repository": {
     "type": "git",

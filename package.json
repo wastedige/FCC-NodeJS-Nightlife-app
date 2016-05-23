@@ -1,7 +1,7 @@
 {
-  "name": "node-js-getting-started",
-  "version": "0.2.5",
-  "description": "A sample Node.js app using Express 4",
+  "name": "nightlife",
+  "version": "0.0.1",
+  "description": "A simple nightlife app using Express 4",
   "engines": {
     "node": "5.9.1"
   },
@@ -10,17 +10,20 @@
     "start": "node index.js"
   },
   "dependencies": {
+    "body-parser": "^1.15.1",
     "cookie-parser": "^1.4.1",
     "ejs": "2.4.1",
     "express": "4.13.3",
     "express-session": "^1.13.0",
+    "jade": "^1.11.0",
     "node-twitter-api": "^1.7.2",
     "oauth": "^0.9.14",
-    "session": "^0.1.0"
+    "session": "^0.1.0",
+    "yelp": "^1.0.1"
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/heroku/node-js-getting-started"
+    "url": "https://github.com/wastedige/FCC-NodeJS-Nightlife-app"
   },
   "keywords": [
     "node",

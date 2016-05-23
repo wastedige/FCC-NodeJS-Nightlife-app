@@ -1,0 +1,38 @@
+doctype html
+
+block content
+  .container.h4
+    if (!user)          
+      a.btn.btn-primary(href="/auth/twitter") Login
+      span      
+      a.btn.btn-primary(href="/register") Register
+    if (user)
+      p.small.text-right.bg-success(style="padding: 10px") You are currently logged in as: #{user}
+      a.btn.btn-default(href="/createpoll") Create a new poll
+      span
+      a.btn.btn-default(href="/aggregatepolls" style="margin: 5px") Poll aggregates
+      span
+      a.btn.btn-primary(href="/logout" style="margin: 5px") Logout
+    p
+    .well   
+      form(role='form', action='/search', enctype="application/json", method='post')
+        span.h4 Search Yelp API: 
+        .form-group.h4
+          br          
+          input(type='text', name="search", value="Look for:")
+          | &nbsp;in&nbsp;
+          input(type='text', name="zipcode", value="Zip code")
+          | ?
+        br          
+        button.btn(name='submit', type='submit') Search!     
+    
+    if (results)    
+      table.table
+        tr
+          th.text-center Search Results:     
+        for r in results
+          tr
+            td #{r.name}
+        
+        
+          

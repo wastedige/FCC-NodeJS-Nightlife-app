@@ -1,9 +1,12 @@
 var express = require('express');
 var app = express();
 var cookieParser = require('cookie-parser');
+var bodyParser = require('body-parser');
 var session = require('express-session');
 var path = require('path');
 var twitterAPI = require('node-twitter-api');
+var Yelp = require('yelp');
+var parse = require('./parse.js')
 
 app.set('port', (process.env.PORT || 5000));
 
@@ -11,10 +14,13 @@ app.set('port', (process.env.PORT || 5000));
 app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'jade');
 
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(session({
   secret: 'some crappy secret'
 }));
+
 
 // https://www.npmjs.com/package/node-twitter-api
 // http://codetheory.in/how-to-use-twitter-oauth-with-node-oauth-in-your-node-js-express-application/ without using node-twitter-api module
@@ -24,13 +30,30 @@ var twitter = new twitterAPI({
 	callback: "http://localhost:5000/auth/twitter/callback",
 });
 
-app.get('/', function(request, response) {
-  response.send('hi!');
+// https://github.com/olalonde/node-yelp
+var yelp = new Yelp({
+  consumer_key: 'HfQNywD4Gly5CMJ8AYNs_A',
+  consumer_secret: 'BoAv-JX1YTTad0RpAZ5TTusAIOc',
+  token: 'lhXbJGUQV_XGEvzqp2lldx04LAY-g3Ce',
+  token_secret: 'jO38_lb-6QE7nQTqffxWXt9dXfQ',
 });
 
-app.get('/2', function(req, res) {
-  res.send('h2!');
-});
+
+app.post('/search', function(req, res, next) {
+  console.log("req", req.body)
+  var search = req.body.search;
+  var zip = req.body.zipcode;
+  // See http://www.yelp.com/developers/documentation/v2/search_api
+  yelp.search({ term: search, location: zip })
+  .then(function (data) {
+    // console.log(data);
+    // console.log(parse(data.businesses))
+    res.render('index', {results: parse(data.businesses)});
+  })
+  .catch(function (err) {
+    console.error(err);
+  });
+})
 
 
 app.get('/auth/twitter', function(req, res) {
@@ -76,22 +99,18 @@ app.get('/auth/twitter/callback', function(req, res, next) {
           twitter.verifyCredentials(oauth_access_token, oauth_access_token_secret, null, function(error, data, response) {
           	if (error) {
               console.log("something was wrong with either accessToken or accessTokenSecret ")
-          		//something was wrong with either accessToken or accessTokenSecret
-          		//start over with Step 1
           	} else {
           		//accessToken and accessTokenSecret can now be used to make api-calls (not yet implemented)
           		//data contains the user-data described in the official Twitter-API-docs
           		//you could e.g. display his screen_name
           		console.log(data);
+              res.render('index', {user: data['screen_name']});
           	}
           });
 
-          res.redirect('/2'); // You might actually want to redirect!
         }
       }
     );
-
-
 
   }
   else {
@@ -101,6 +120,10 @@ app.get('/auth/twitter/callback', function(req, res, next) {
 
 });
 
+// catch all!
+app.get('*', function (req, res) {
+  res.render('index');
+});
 
 app.listen(app.get('port'), function() {
   console.log('Node app is running on port', app.get('port'));

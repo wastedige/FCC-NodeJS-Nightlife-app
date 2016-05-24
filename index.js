@@ -1,5 +1,6 @@
 var express = require('express');
 var app = express();
+var mongoose = require('mongoose');
 var cookieParser = require('cookie-parser');
 var bodyParser = require('body-parser');
 var session = require('express-session');
@@ -7,8 +8,12 @@ var path = require('path');
 var twitterAPI = require('node-twitter-api');
 var Yelp = require('yelp');
 var parse = require('./parse.js')
+var UserList = require('./models/user');
 
 app.set('port', (process.env.PORT || 5000));
+
+var db = mongoose.connect("mongodb://wastedige:salamsalam@ds011883.mlab.com:11883/heroku_ddddmk9g");
+app.set('db', db)
 
 // view engine setup
 app.set('views', path.join(__dirname, 'views'));
@@ -38,6 +43,7 @@ var yelp = new Yelp({
   token_secret: 'jO38_lb-6QE7nQTqffxWXt9dXfQ',
 });
 
+var logged_user = null;
 
 app.post('/search', function(req, res, next) {
   console.log("req", req.body)
@@ -48,7 +54,7 @@ app.post('/search', function(req, res, next) {
   .then(function (data) {
     // console.log(data);
     // console.log(parse(data.businesses))
-    res.render('index', {results: parse(data.businesses)});
+    res.render('index', {user: logged_user['screen_name'], results: parse(data.businesses)});
   })
   .catch(function (err) {
     console.error(err);
@@ -68,7 +74,7 @@ app.get('/auth/twitter', function(req, res) {
         token: oauth_token,
         token_secret: oauth_token_secret
       };
-      console.log("init auth", req.session.oauth);
+      // console.log("init auth", req.session.oauth);
       res.redirect('https://twitter.com/oauth/authenticate?oauth_token='+oauth_token)
     }
   });
@@ -100,11 +106,10 @@ app.get('/auth/twitter/callback', function(req, res, next) {
           	if (error) {
               console.log("something was wrong with either accessToken or accessTokenSecret ")
           	} else {
-          		//accessToken and accessTokenSecret can now be used to make api-calls (not yet implemented)
-          		//data contains the user-data described in the official Twitter-API-docs
-          		//you could e.g. display his screen_name
-          		console.log(data);
-              res.render('index', {user: data['screen_name']});
+
+          		// JSON.stringify(data, null, 4)
+              logged_user = data
+              res.render('index', {user: data['screen_name'] });
           	}
           });
 
@@ -117,6 +122,52 @@ app.get('/auth/twitter/callback', function(req, res, next) {
     res.redirect('/login'); // Redirect to login page
     console.log("no token?", req.session.oauth);
   }
+
+});
+
+app.get('/rsvp/:id', function (req, res) {
+  var id = req.params.id;
+  if ( logged_user == null ) // make sure it's not an anonymous user!
+    res.render('index')
+
+  UserList.find({userid : logged_user['id']}, function (err, data) {
+      if (err)
+        console.log("Error find in UserList:", err)
+
+      console.log("User's current list: " , JSON.stringify(data, null, 4));
+      if (data.length < 1) { // new user! Create a instance of User model
+
+        var newUser = new UserList({
+          userid: logged_user['id'],
+          rsvps: [{'businessid': id}]
+        })
+        newUser.save(function(err, data){
+          if (err)
+            console.log(err);
+          else {
+            console.log(data, null, 4);
+            res.redirect('/');
+          }
+        })
+      }
+
+      else {
+
+      }
+  });
+
+
+  // // https://scalegrid.io/blog/getting-started-with-mongodb-and-mongoose/
+  // // https://alexanderzeitler.com/articles/mongoose-referencing-schema-in-properties-and-arrays/
+  // newPoll.save(function(err, data){
+  //   if (err)
+  //     console.log(err);
+  //   else {
+  //     console.log(data, null, 4);
+  //     res.redirect('/');
+  //   }
+  //
+  // })
 
 });
 

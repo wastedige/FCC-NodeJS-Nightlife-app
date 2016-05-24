@@ -16,6 +16,7 @@
     "express": "4.13.3",
     "express-session": "^1.13.0",
     "jade": "^1.11.0",
+    "mongoose": "^4.4.19",
     "node-twitter-api": "^1.7.2",
     "oauth": "^0.9.14",
     "session": "^0.1.0",

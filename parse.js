@@ -5,6 +5,7 @@ module.exports = function (inphrase) {
     temp_json_obj.name = inphrase[i].name
     temp_json_obj.url = inphrase[i].url
     temp_json_obj.imageurl = inphrase[i].image_url
+    temp_json_obj.id = inphrase[i].id
 
     search_abstraction_result.push ( temp_json_obj );
   }

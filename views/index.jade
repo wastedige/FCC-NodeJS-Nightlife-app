@@ -1,16 +1,11 @@
-doctype html
+extends layout
 
 block content
   .container.h4
     if (!user)          
-      a.btn.btn-primary(href="/auth/twitter") Login
-      span      
-      a.btn.btn-primary(href="/register") Register
+      a.btn.btn-primary(href="/auth/twitter") Login with Twitter
     if (user)
       p.small.text-right.bg-success(style="padding: 10px") You are currently logged in as: #{user}
-      a.btn.btn-default(href="/createpoll") Create a new poll
-      span
-      a.btn.btn-default(href="/aggregatepolls" style="margin: 5px") Poll aggregates
       span
       a.btn.btn-primary(href="/logout" style="margin: 5px") Logout
     p
@@ -29,10 +24,13 @@ block content
     if (results)    
       table.table
         tr
-          th.text-center Search Results:     
+          th.text-center  Search Results:     
         for r in results
           tr
-            td #{r.name}
+            td #{r.name}&nbsp;
+              span
+              button.btn-xs.btn-warning(name='rsvp')
+                a(href='/rsvp/#{r.id}') RSVP
         
         
           

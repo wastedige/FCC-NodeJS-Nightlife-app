@@ -160,12 +160,12 @@ app.get('/rsvp/:id', function(req, res) {
                     res.redirect('/');
                 }
             })
-        } else {
+        } else { // remove an RSVP if it exists?
           UserList.findOneAndUpdate({
               "userid": logged_user['id']
             },
             {
-              "$pull": {
+              "$addToSet": {
                   rsvps: { "businessid": id }
               }
             }, { update: true },
@@ -176,6 +176,9 @@ app.get('/rsvp/:id', function(req, res) {
                 console.log("Da", data)
             }
           );
+          res.render('index', {
+              user: data['screen_name']
+          });
         }
     });
 

@@ -7,8 +7,22 @@ var session = require('express-session');
 var path = require('path');
 var twitterAPI = require('node-twitter-api');
 var Yelp = require('yelp');
-var parse = require('./parse.js')
+var parse = require('./parseYelpResults.js')
 var UserList = require('./models/user');
+var UserRsvpList =  function(userid, callback) {
+  console.log("find init UserList:")
+  UserList.find({
+      'userid': userid
+  }, function(err, data) {
+      if (err) {
+          console.log("Error find in UserList:", err)
+          callback(err, null);
+      } else {
+          console.log("User's current list: ", JSON.stringify(data, null, 4));
+          callback(null, data);
+      }
+    })
+}
 
 app.set('port', (process.env.PORT || 5000));
 
@@ -46,6 +60,7 @@ var yelp = new Yelp({
 });
 
 var logged_user = null;
+var user_rsvps = null;
 
 app.post('/search', function(req, res, next) {
     console.log("req", req.body)
@@ -58,9 +73,11 @@ app.post('/search', function(req, res, next) {
         })
         .then(function(data) {
             // console.log(data);
-            // console.log(parse(data.businesses))
+            console.log("data.biz: ", parse(data.businesses))
+            console.log("rsvps: ", user_rsvps)
             res.render('index', {
-                user: logged_user['screen_name'],
+                username: logged_user['screen_name'],
+                userdata: user_rsvps,
                 results: parse(data.businesses)
             });
         })
@@ -113,14 +130,47 @@ app.get('/auth/twitter/callback', function(req, res, next) {
                             console.log("something was wrong with either accessToken or accessTokenSecret ")
                         } else {
 
-                            // JSON.stringify(data, null, 4)
+                            // console.log( JSON.stringify(data, null, 4) )
                             logged_user = data
-                            res.render('index', {
-                                user: data['screen_name']
-                            });
-                        }
-                    });
 
+                            UserList.findOne({
+                                'userid': data.id
+                            }, function(err, resp) {
+                                if (err) {
+                                    console.log("Error find in UserList:", err)
+                                } else {
+                                    console.log("User's current list: ", resp);
+
+                                    if ( !resp || resp.length < 1) { // new user! Create a instance of User model
+                                        console.log("No such user. Creating")
+                                        var newUser = new UserList({
+                                            userid: logged_user['id'],
+                                            rsvps: []
+                                        })
+                                        newUser.save(function(err, data) {
+                                            if (err)
+                                                console.log("Error saving new user: ", err);
+                                            else {
+                                                console.log(data, null, 4);
+                                            }
+                                        })
+                                        user_rsvps = [];
+
+                                      } else { // pass along user's RSVP information to the Jade file
+                                        user_rsvps = resp.rsvps;
+                                        console.log("RSVPs: ", resp.rsvps)
+                                      }
+
+                                }
+                              })
+                          }
+
+                          res.render('index', {
+                              username: logged_user['screen_name'],
+                              userdata: user_rsvps
+                          });
+
+                    });
                 }
             }
         );
@@ -133,73 +183,42 @@ app.get('/auth/twitter/callback', function(req, res, next) {
 });
 
 app.get('/rsvp/:id', function(req, res) {
+
     var id = req.params.id;
     if (logged_user == null) // make sure it's not an anonymous user!
         res.render('index')
 
-    UserList.find({
-        userid: logged_user['id']
-    }, function(err, data) {
-        if (err)
-            console.log("Error find in UserList:", err)
-        console.log("User's current list: ", JSON.stringify(data, null, 4));
+    UserRsvpList(logged_user['id'], function (err, data){
 
-        if (data.length < 1) { // new user! Create a instance of User model
-            console.log("No such user. Creating")
-            var newUser = new UserList({
-                userid: logged_user['id'],
-                rsvps: [{
-                    'businessid': id
-                }]
-            })
-            newUser.save(function(err, data) {
-                if (err)
-                    console.log(err);
-                else {
-                    console.log(data, null, 4);
-                    res.redirect('/');
-                }
-            })
-        } else { // remove an RSVP if it exists?
-          UserList.findOneAndUpdate({
-              "userid": logged_user['id']
-            },
-            {
-              "$addToSet": {
-                  rsvps: { "businessid": id }
-              }
-            }, { update: true },
-            function(err, data) {
-              if (err)
-                console.log("er", err)
-              else
-                console.log("Da", data)
+        UserList.findOneAndUpdate({
+            "userid": logged_user['id']
+          },
+          {
+            "$addToSet": {
+                rsvps: id
             }
-          );
-          res.render('index', {
-              user: data['screen_name']
-          });
-        }
-    });
-
-
-    // // https://scalegrid.io/blog/getting-started-with-mongodb-and-mongoose/
-    // // https://alexanderzeitler.com/articles/mongoose-referencing-schema-in-properties-and-arrays/
-    // newPoll.save(function(err, data){
-    //   if (err)
-    //     console.log(err);
-    //   else {
-    //     console.log(data, null, 4);
-    //     res.redirect('/');
-    //   }
-    //
-    // })
+          }, { update: true },
+          function(err, data) {
+            if (err)
+              console.log("er", err)
+            else
+              console.log("Da", data)
+          }
+        );
+        res.render('index', {
+            username: data['screen_name'],
+            userdata: data
+        });
+    })
 
 });
 
 // catch all!
 app.get('*', function(req, res) {
-    res.render('index');
+  res.render('index', {
+      username: data['screen_name'],
+
+  });
 });
 
 app.listen(app.get('port'), function() {

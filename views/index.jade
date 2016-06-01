@@ -2,10 +2,10 @@ extends layout
 
 block content
   .container.h4
-    if (!username)          
+    if (!user) || (user == null)          
       a.btn.btn-primary(href="/auth/twitter") Login with Twitter
-    if (username)
-      p.small.text-right.bg-success(style="padding: 10px") You are currently logged in as: #{username}
+    if (user)
+      p.small.text-right.bg-success(style="padding: 10px") You are currently logged in as: #{user['screen_name']}
       span
       a.btn.btn-primary(href="/logout" style="margin: 5px") Logout
     p
@@ -29,6 +29,7 @@ block content
           tr
             td #{r.name}&nbsp;
               span
+              - console.log(JSON.stringify({ biz_id: r.id }))
               if userdata.indexOf( r.id ) < 0
                 button.btn-xs.btn-warning(name='rsvp')
                   a(href='/rsvp/#{r.id}') RSVP

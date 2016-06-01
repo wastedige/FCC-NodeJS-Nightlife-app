@@ -8,14 +8,16 @@ var path = require('path');
 var twitterAPI = require('node-twitter-api');
 var Yelp = require('yelp');
 var parse = require('./parseYelpResults.js')
-var UserList = require('./models/user');
+var RsvpList = require('./models/rsvpmodel');
 var UserRsvpList =  function(userid, callback) {
-  console.log("find init UserList:")
-  UserList.find({
-      'userid': userid
+  console.log("find init RsvpList:")
+  RsvpList.find({
+    // https://docs.mongodb.com/manual/reference/operator/query-comparison/
+    // https://docs.mongodb.com/manual/reference/operator/query/elemMatch/#op._S_elemMatch
+      rsvps: { $elemMatch: { $eq: userid } }
   }, function(err, data) {
       if (err) {
-          console.log("Error find in UserList:", err)
+          console.log("Error find in RsvpList:", err)
           callback(err, null);
       } else {
           console.log("User's current list: ", JSON.stringify(data, null, 4));
@@ -76,7 +78,7 @@ app.post('/search', function(req, res, next) {
             console.log("data.biz: ", parse(data.businesses))
             console.log("rsvps: ", user_rsvps)
             res.render('index', {
-                username: logged_user['screen_name'],
+                user: logged_user,
                 userdata: user_rsvps,
                 results: parse(data.businesses)
             });
@@ -131,42 +133,30 @@ app.get('/auth/twitter/callback', function(req, res, next) {
                         } else {
 
                             // console.log( JSON.stringify(data, null, 4) )
-                            logged_user = data
+                              logged_user = data
 
-                            UserList.findOne({
-                                'userid': data.id
-                            }, function(err, resp) {
+                              UserRsvpList(data.id, function(err, resp){
                                 if (err) {
                                     console.log("Error find in UserList:", err)
                                 } else {
                                     console.log("User's current list: ", resp);
+                                    user_rsvps = [];
 
-                                    if ( !resp || resp.length < 1) { // new user! Create a instance of User model
-                                        console.log("No such user. Creating")
-                                        var newUser = new UserList({
-                                            userid: logged_user['id'],
-                                            rsvps: []
-                                        })
-                                        newUser.save(function(err, data) {
-                                            if (err)
-                                                console.log("Error saving new user: ", err);
-                                            else {
-                                                console.log(data, null, 4);
-                                            }
-                                        })
-                                        user_rsvps = [];
+                                    if ( !resp || resp.length < 1) { // no DB? create new one
+                                        console.log("No RSVPs for this user.")
 
                                       } else { // pass along user's RSVP information to the Jade file
-                                        user_rsvps = resp.rsvps;
-                                        console.log("RSVPs: ", resp.rsvps)
+                                        for (var i = 0; i < resp.length; i++ ) {
+                                          user_rsvps.push( resp[i]["biz_id"] )
+                                        }
+                                        console.log("Biz's RSVPs: ", user_rsvps)
                                       }
-
                                 }
                               })
                           }
 
                           res.render('index', {
-                              username: logged_user['screen_name'],
+                              user: logged_user,
                               userdata: user_rsvps
                           });
 
@@ -184,41 +174,45 @@ app.get('/auth/twitter/callback', function(req, res, next) {
 
 app.get('/rsvp/:id', function(req, res) {
 
-    var id = req.params.id;
-    if (logged_user == null) // make sure it's not an anonymous user!
-        res.render('index')
 
-    UserRsvpList(logged_user['id'], function (err, data){
+  var id = req.params.id;
+  if (logged_user == null) // make sure it's not an anonymous user!
+      res.render('index')
 
-        UserList.findOneAndUpdate({
-            "userid": logged_user['id']
-          },
-          {
-            "$addToSet": {
-                rsvps: id
-            }
-          }, { update: true },
-          function(err, data) {
-            if (err)
-              console.log("er", err)
-            else
-              console.log("Da", data)
-          }
-        );
-        res.render('index', {
-            username: data['screen_name'],
-            userdata: data
-        });
-    })
+
+  RsvpList.findOneAndUpdate({
+      "biz_id": id
+    },
+    {
+      "$addToSet": {
+          rsvps: logged_user['id']
+      }
+    }, { upsert: true },
+    function(err, data) {
+      if (err)
+        console.log("er", err)
+      else
+        console.log("Da", data)
+    }
+  );
+
+  //
+  UserRsvpList(logged_user['id'], function (err, data){
+    res.render('index', {
+        user: logged_user,
+        userdata: data
+    });
+  })
+
+
 
 });
 
 // catch all!
 app.get('*', function(req, res) {
-  res.render('index', {
-      username: data['screen_name'],
-
-  });
+    res.render('index', {
+        user: logged_user
+    })
 });
 
 app.listen(app.get('port'), function() {

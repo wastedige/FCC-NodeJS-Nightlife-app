@@ -25,16 +25,22 @@ block content
       table.table
         tr
           th.text-center  Search Results:     
-        for r in results
+        each val, index in results
           tr
-            td #{r.name}&nbsp;
+          - userDataIndex = userdata.indexOf( val.id )
+            td #{val.name}&nbsp;
               span
-              - console.log(JSON.stringify({ biz_id: r.id }))
-              if userdata.indexOf( r.id ) < 0
-                button.btn-xs.btn-warning(name='rsvp')
-                  a(href='/rsvp/#{r.id}') RSVP
-              else
-                button.btn-xs.btn-danger(name='unrsvp')
-                  a(href='/unrsvp/#{r.id}') UnRSVP        
+              if (userdata)                
+                if userDataIndex < 0
+                  button.btn-xs.btn-warning(name='rsvp')
+                    a(href='/rsvp/#{val.id}') RSVP
+                else
+                  button.btn-xs.btn-danger(name='unrsvp')
+                    a(href='/unrsvp/#{val.id}') UnRSVP  
+            td              
+              if (rsvps_count[userDataIndex] > 0)
+                span RSVPs: 
+                span #{ rsvps_count[userDataIndex] }
+
         
           

@@ -62,7 +62,8 @@ var yelp = new Yelp({
 });
 
 var logged_user = null;
-var user_rsvps = null;
+var user_rsvps = [];
+var rsvps_count = [];
 
 app.post('/search', function(req, res, next) {
     console.log("req", req.body)
@@ -75,11 +76,12 @@ app.post('/search', function(req, res, next) {
         })
         .then(function(data) {
             // console.log(data);
-            console.log("data.biz: ", parse(data.businesses))
+            // console.log("data.biz: ", parse(data.businesses))
             console.log("rsvps: ", user_rsvps)
             res.render('index', {
                 user: logged_user,
                 userdata: user_rsvps,
+                rsvps_count: rsvps_count,
                 results: parse(data.businesses)
             });
         })
@@ -140,7 +142,6 @@ app.get('/auth/twitter/callback', function(req, res, next) {
                                     console.log("Error find in UserList:", err)
                                 } else {
                                     console.log("User's current list: ", resp);
-                                    user_rsvps = [];
 
                                     if ( !resp || resp.length < 1) { // no DB? create new one
                                         console.log("No RSVPs for this user.")
@@ -148,8 +149,10 @@ app.get('/auth/twitter/callback', function(req, res, next) {
                                       } else { // pass along user's RSVP information to the Jade file
                                         for (var i = 0; i < resp.length; i++ ) {
                                           user_rsvps.push( resp[i]["biz_id"] )
+                                          rsvps_count.push( resp[i]["rsvps"].length)
                                         }
                                         console.log("Biz's RSVPs: ", user_rsvps)
+                                        console.log("RSVPs count: ", rsvps_count)
                                       }
                                 }
                               })
@@ -157,7 +160,8 @@ app.get('/auth/twitter/callback', function(req, res, next) {
 
                           res.render('index', {
                               user: logged_user,
-                              userdata: user_rsvps
+                              userdata: user_rsvps,
+                              rsvps_count: rsvps_count
                           });
 
                     });
@@ -199,8 +203,9 @@ app.get('/rsvp/:id', function(req, res) {
   //
   UserRsvpList(logged_user['id'], function (err, data){
     res.render('index', {
-        user: logged_user,
-        userdata: data
+      user: logged_user,
+      userdata: user_rsvps,
+      rsvps_count: rsvps_count
     });
   })
 

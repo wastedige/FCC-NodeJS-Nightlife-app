@@ -26,6 +26,31 @@ var UserRsvpList =  function(userid, callback) {
     })
 }
 
+var FetchUserData = function(dataid, callback) {
+  user_rsvps = [];
+  rsvps_count = [];
+  UserRsvpList(dataid, function(err, resp){
+    if (err) {
+        console.log("Error find in UserList:", err)
+        callback(err, null)
+    } else {
+        console.log("User's current list: ", resp);
+
+        if ( !resp || resp.length < 1) { // no DB? create new one
+            console.log("No RSVPs for this user.")
+        } else { // pass along user's RSVP information to the Jade file
+          for (var i = 0; i < resp.length; i++ ) {
+            user_rsvps.push( resp[i]["biz_id"] )
+            rsvps_count.push( resp[i]["rsvps"].length)
+          }
+          console.log("Biz's RSVPs: ", user_rsvps)
+          console.log("RSVPs count: ", rsvps_count)
+        }
+        callback(null, true);
+    }
+  })
+}
+
 app.set('port', (process.env.PORT || 5000));
 
 var db = mongoose.connect("mongodb://wastedige:salamsalam@ds011883.mlab.com:11883/heroku_ddddmk9g");
@@ -64,6 +89,7 @@ var yelp = new Yelp({
 var logged_user = null;
 var user_rsvps = [];
 var rsvps_count = [];
+var parsed_search_results = null;
 
 app.post('/search', function(req, res, next) {
     console.log("req", req.body)
@@ -78,11 +104,12 @@ app.post('/search', function(req, res, next) {
             // console.log(data);
             // console.log("data.biz: ", parse(data.businesses))
             console.log("rsvps: ", user_rsvps)
+            parsed_search_results = parse(data.businesses)
             res.render('index', {
                 user: logged_user,
                 userdata: user_rsvps,
                 rsvps_count: rsvps_count,
-                results: parse(data.businesses)
+                results: parsed_search_results
             });
         })
         .catch(function(err) {
@@ -133,36 +160,19 @@ app.get('/auth/twitter/callback', function(req, res, next) {
                         if (error) {
                             console.log("something was wrong with either accessToken or accessTokenSecret ")
                         } else {
-
                             // console.log( JSON.stringify(data, null, 4) )
                               logged_user = data
-
-                              UserRsvpList(data.id, function(err, resp){
-                                if (err) {
-                                    console.log("Error find in UserList:", err)
-                                } else {
-                                    console.log("User's current list: ", resp);
-
-                                    if ( !resp || resp.length < 1) { // no DB? create new one
-                                        console.log("No RSVPs for this user.")
-
-                                      } else { // pass along user's RSVP information to the Jade file
-                                        for (var i = 0; i < resp.length; i++ ) {
-                                          user_rsvps.push( resp[i]["biz_id"] )
-                                          rsvps_count.push( resp[i]["rsvps"].length)
-                                        }
-                                        console.log("Biz's RSVPs: ", user_rsvps)
-                                        console.log("RSVPs count: ", rsvps_count)
-                                      }
+                              FetchUserData(data.id, function(err, done){
+                                if (done) {
+                                  res.render('index', {
+                                      user: logged_user,
+                                      userdata: user_rsvps,
+                                      rsvps_count: rsvps_count
+                                  });
                                 }
                               })
                           }
 
-                          res.render('index', {
-                              user: logged_user,
-                              userdata: user_rsvps,
-                              rsvps_count: rsvps_count
-                          });
 
                     });
                 }
@@ -196,22 +206,63 @@ app.get('/rsvp/:id', function(req, res) {
       if (err)
         console.log("er", err)
       else
-        console.log("Da", data)
+        console.log("Data from findOneAndUpdate RSVP: ", data)
+        FetchUserData(logged_user['id'], function(err, done){
+          if (done) {
+            res.render('index', {
+                user: logged_user,
+                userdata: user_rsvps,
+                rsvps_count: rsvps_count,
+                results: parsed_search_results
+            });
+          }
+        })
     }
   );
-
-  //
-  UserRsvpList(logged_user['id'], function (err, data){
-    res.render('index', {
-      user: logged_user,
-      userdata: user_rsvps,
-      rsvps_count: rsvps_count
-    });
-  })
 
 
 
 });
+
+
+app.get('/unrsvp/:id', function(req, res) {
+
+
+  var id = req.params.id;
+  if (logged_user == null) // make sure it's not an anonymous user!
+      res.render('index')
+
+
+  RsvpList.findOneAndUpdate({
+      "biz_id": id
+    },
+    {
+      "$pull": {
+          rsvps: logged_user['id']
+      }
+    }, { update: true },
+    function(err, data) {
+      if (err)
+        console.log("er", err)
+      else
+        console.log("Data from findOneAndUpdate Un-RSVP: ", data)
+        FetchUserData(logged_user['id'], function(err, done){
+          if (done) {
+            res.render('index', {
+                user: logged_user,
+                userdata: user_rsvps,
+                rsvps_count: rsvps_count,
+                results: parsed_search_results
+            });
+          }
+        })
+    }
+  );
+
+
+
+});
+
 
 // catch all!
 app.get('*', function(req, res) {

@@ -2,7 +2,7 @@ extends layout
 
 block content
   .container.h4
-    if (!user) || (user == null)          
+    if (!user || user == null)          
       a.btn.btn-primary(href="/auth/twitter") Login with Twitter
     if (user)
       p.small.text-right.bg-success(style="padding: 10px") You are currently logged in as: #{user['screen_name']}
@@ -21,26 +21,31 @@ block content
         br          
         button.btn(name='submit', type='submit') Search!     
     
-    if (results)    
-      table.table
-        tr
-          th.text-center  Search Results:     
-        each val, index in results
+    if (results) 
+      span.h3 Search Results:
+      p
+      table.table   
+        - each val, index in results
           tr
           - userDataIndex = userdata.indexOf( val.id )
+            td 
+              img(src=val.imageurl)
             td #{val.name}&nbsp;
               span
-              if (userdata)                
+              if (userdata && user)                
                 if userDataIndex < 0
                   button.btn-xs.btn-warning(name='rsvp')
                     a(href='/rsvp/#{val.id}') RSVP
                 else
                   button.btn-xs.btn-danger(name='unrsvp')
-                    a(href='/unrsvp/#{val.id}') UnRSVP  
+                    a(href='/unrsvp/#{val.id}') UnRSVP
+                  br
+                  if (rsvps_count[userDataIndex] > 0)
+                    strong RSVPs: #{ rsvps_count[userDataIndex] }
+            td(width='250px')
+              span.small #{val.snippet_text}
             td              
-              if (rsvps_count[userDataIndex] > 0)
-                span RSVPs: 
-                span #{ rsvps_count[userDataIndex] }
+
 
         
           

@@ -102,7 +102,7 @@ app.post('/search', function(req, res, next) {
         })
         .then(function(data) {
             // console.log(data);
-            // console.log("data.biz: ", parse(data.businesses))
+            console.log("-------\ndata.biz: ", parse(data.businesses))
             console.log("rsvps: ", user_rsvps)
             parsed_search_results = parse(data.businesses)
             res.render('index', {
@@ -167,7 +167,8 @@ app.get('/auth/twitter/callback', function(req, res, next) {
                                   res.render('index', {
                                       user: logged_user,
                                       userdata: user_rsvps,
-                                      rsvps_count: rsvps_count
+                                      rsvps_count: rsvps_count,
+                                      results: parsed_search_results
                                   });
                                 }
                               })
@@ -263,6 +264,12 @@ app.get('/unrsvp/:id', function(req, res) {
 
 });
 
+app.get('/logout', function(req, res) {
+    logged_user = null;
+    res.render('index', {
+        user: logged_user
+    })
+});
 
 // catch all!
 app.get('*', function(req, res) {

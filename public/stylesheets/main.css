@@ -1,3 +1,5 @@
+.restaurant-stars { display:block; width:200px; height:35px; background:url('/images/ratinggrey.png') no-repeat; }
+.restaurant-stars-rating { display:block; width:200px; height:35px; background:url('/images/ratinggold.png') no-repeat; }
 .jumbotron {
   background: #532F8C;
   color: white;
@@ -24,4 +26,3 @@
     border: 2px solid white; }
     .jumbotron .lang-logo img {
       max-width: 100%; }
-

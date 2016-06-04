@@ -57,6 +57,7 @@ var db = mongoose.connect("mongodb://wastedige:salamsalam@ds011883.mlab.com:1188
 app.set('db', db)
 
 // view engine setup
+app.use(express.static(__dirname + '/public'));
 app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'jade');
 
@@ -105,12 +106,14 @@ app.post('/search', function(req, res, next) {
             console.log("-------\ndata.biz: ", parse(data.businesses))
             console.log("rsvps: ", user_rsvps)
             parsed_search_results = parse(data.businesses)
+
             res.render('index', {
                 user: logged_user,
                 userdata: user_rsvps,
                 rsvps_count: rsvps_count,
                 results: parsed_search_results
             });
+            return;
         })
         .catch(function(err) {
             console.error(err);
@@ -131,6 +134,7 @@ app.get('/auth/twitter', function(req, res) {
             };
             // console.log("init auth", req.session.oauth);
             res.redirect('https://twitter.com/oauth/authenticate?oauth_token=' + oauth_token)
+            return;
         }
     });
 
@@ -261,7 +265,6 @@ app.get('/unrsvp/:id', function(req, res) {
   );
 
 
-
 });
 
 app.get('/logout', function(req, res) {
@@ -272,7 +275,7 @@ app.get('/logout', function(req, res) {
 });
 
 // catch all!
-app.get('*', function(req, res) {
+app.get('/', function(req, res) {
     res.render('index', {
         user: logged_user
     })

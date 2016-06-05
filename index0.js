@@ -48,27 +48,6 @@ var FetchUserData = function(dataid, callback) {
   })
 }
 
-var AssociateRsvpCountToBiz = function(callback) {
-  callbackCounter = 0
-  for ( var i = 0; i < parsed_search_results.length; i++ ) {
-      RsvpList.findOne({
-        "biz_id": parsed_search_results[i].id
-      }, function(err, data){
-        if (err)
-          console.log("No RSVPs for this search result. ")
-        else {
-          console.log("Dat", data)
-          if (data)
-            rsvps_count.push(data.rsvps.length)
-          else
-            rsvps_count.push(0)
-        }
-        if (++callbackCounter == parsed_search_results.length)
-          callback(null, true)
-      })
-  }
-}
-
 app.set('port', (process.env.PORT || 5000));
 
 var db = mongoose.connect("mongodb://wastedige:salamsalam@ds011883.mlab.com:11883/heroku_ddddmk9g");
@@ -127,29 +106,38 @@ app.post('/search', function(req, res, next) {
 
             var search_results_bizids = []  // grabs the Biz ids into an array from the search result so that we can search in one shot!
             rsvps_count = [];
+            for ( var i = 0; i < parsed_search_results.length; i++ ) {
+                search_results_bizids.push( parsed_search_results[i].id )
+            }
 
-            AssociateRsvpCountToBiz(
-              function(err, data) {
-                    console.log("counter data! :: ", rsvps_count)
-                    res.render('index', {
-                        user: logged_user,
-                        userdata: user_rsvps,
-                        rsvps_count: rsvps_count,
-                        results: parsed_search_results
-                    });
-                    return;
+            // From the search results, find the bizs that have RSVPs
+            RsvpList.find({
+                "biz_id": { $in: search_results_bizids }
+            }, function(err, data) {
+                if (err) {
+                  console.log("No RSVPs for this search result. ")
+                } else {
+
+                  // Associate the RSVPS results to the search results
+                  for ( var i = 0; i < data.length; i++ ) {
+                    var index = search_results_bizids.indexOf( data[i].biz_id )
+                    if ( index > -1 )
+                      rsvps_count[index] = ( data[i].rsvps.length )
+
+                    }
+                  }
+                  console.log("counter data! :: ", rsvps_count)
                 }
-            );
 
+                res.render('index', {
+                    user: logged_user,
+                    userdata: user_rsvps,
+                    rsvps_count: rsvps_count,
+                    results: parsed_search_results
+                });
+                return;
 
-
-
-
-
-
-
-
-
+            })
 
         })
         .catch(function(err) {

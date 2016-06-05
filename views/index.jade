@@ -41,13 +41,13 @@ block content
                   button.btn-xs.btn-danger(name='unrsvp')
                     a(href='/unrsvp/#{val.id}') UnRSVP
                   br
-                if (rsvps_count[userDataIndex] > 0)
-                  strong RSVPs: #{ rsvps_count[userDataIndex] }
                 //- display rating technique from http://www.webia.info/articles/css-articles/how-to-display-ratings-as-stars-using-css-and-a-bit-of-jquery/
               .restaurant-stars
                 .restaurant-stars-rating(style='width: '+ 200/5 * val.rating + 'px') 
                   | 
-                
+              if (rsvps_count[index] > 0)
+                p
+                strong.bg-info &nbsp; RSVPs: #{ rsvps_count[index] } &nbsp;
             td(width='250px')
               span.small #{val.snippet_text}
             td              

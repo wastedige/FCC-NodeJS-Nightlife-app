@@ -20,7 +20,6 @@ var UserRsvpList =  function(userid, callback) {
           console.log("Error find in RsvpList:", err)
           callback(err, null);
       } else {
-          console.log("User's current list: ", JSON.stringify(data, null, 4));
           callback(null, data);
       }
     })
@@ -33,7 +32,7 @@ var FetchUserData = function(dataid, callback) {
         console.log("Error find in UserList:", err)
         callback(err, null)
     } else {
-        console.log("User's current list: ", resp);
+        console.log("FetchUserData User's current list: ", resp);
 
         if ( !resp || resp.length < 1) { // no DB? create new one
             console.log("No RSVPs for this user.")
@@ -49,23 +48,34 @@ var FetchUserData = function(dataid, callback) {
 }
 
 var AssociateRsvpCountToBiz = function(callback) {
+  rsvps_count = [];
   callbackCounter = 0
-  for ( var i = 0; i < parsed_search_results.length; i++ ) {
-      RsvpList.findOne({
-        "biz_id": parsed_search_results[i].id
-      }, function(err, data){
-        if (err)
-          console.log("No RSVPs for this search result. ")
+
+  var SingularCountToBiz = function(index) {
+    RsvpList.findOne({
+      "biz_id": parsed_search_results[index].id
+    }, function(err, data){
+      if (err)
+        console.log("No RSVPs for this search result. ")
+      else {
+        console.log("Data from AssociateRsvpCountToBiz", data)
+        if (data == null)
+          rsvps_count[index] = 0
         else {
-          console.log("Dat", data)
-          if (data)
-            rsvps_count.push(data.rsvps.length)
-          else
-            rsvps_count.push(0)
+          rsvps_count[index] = data.rsvps.length
+          console.log("rsvps_count[i] " + i + rsvps_count[i]  )
         }
-        if (++callbackCounter == parsed_search_results.length)
-          callback(null, true)
-      })
+      }
+      if (++callbackCounter == parsed_search_results.length) {
+        console.log("counter data! :: ", rsvps_count)
+        callback(null, true)
+      }
+
+    })
+  }
+
+  for ( var i = 0; i < parsed_search_results.length; i++ ) {
+    SingularCountToBiz(i)
   }
 }
 
@@ -107,7 +117,7 @@ var yelp = new Yelp({
 
 var logged_user = null;
 var user_rsvps = [];
-var rsvps_count = [];
+var rsvps_count = new Array(20);
 var parsed_search_results = null;
 
 app.post('/search', function(req, res, next) {
@@ -126,11 +136,9 @@ app.post('/search', function(req, res, next) {
             parsed_search_results = parse(data.businesses)
 
             var search_results_bizids = []  // grabs the Biz ids into an array from the search result so that we can search in one shot!
-            rsvps_count = [];
 
             AssociateRsvpCountToBiz(
               function(err, data) {
-                    console.log("counter data! :: ", rsvps_count)
                     res.render('index', {
                         user: logged_user,
                         userdata: user_rsvps,
@@ -140,16 +148,6 @@ app.post('/search', function(req, res, next) {
                     return;
                 }
             );
-
-
-
-
-
-
-
-
-
-
 
         })
         .catch(function(err) {
@@ -215,7 +213,6 @@ app.get('/auth/twitter/callback', function(req, res, next) {
                               })
                           }
 
-
                     });
                 }
             }
@@ -249,20 +246,21 @@ app.get('/rsvp/:id', function(req, res) {
         console.log("er", err)
       else
         console.log("Data from findOneAndUpdate RSVP: ", data)
-        FetchUserData(logged_user['id'], function(err, done){
-          if (done) {
-            res.render('index', {
-                user: logged_user,
-                userdata: user_rsvps,
-                rsvps_count: rsvps_count,
-                results: parsed_search_results
-            });
-          }
-        })
+      FetchUserData(logged_user['id'], function(err, done){
+        if (done) {
+          AssociateRsvpCountToBiz(
+            function(err, data) {
+              res.render('index', {
+                  user: logged_user,
+                  userdata: user_rsvps,
+                  rsvps_count: rsvps_count,
+                  results: parsed_search_results
+              });
+            })
+        }
+      })
     }
   );
-
-
 
 });
 
@@ -290,17 +288,19 @@ app.get('/unrsvp/:id', function(req, res) {
         console.log("Data from findOneAndUpdate Un-RSVP: ", data)
         FetchUserData(logged_user['id'], function(err, done){
           if (done) {
-            res.render('index', {
-                user: logged_user,
-                userdata: user_rsvps,
-                rsvps_count: rsvps_count,
-                results: parsed_search_results
-            });
+            AssociateRsvpCountToBiz(
+              function(err, data) {
+                res.render('index', {
+                    user: logged_user,
+                    userdata: user_rsvps,
+                    rsvps_count: rsvps_count,
+                    results: parsed_search_results
+                });
+              })
           }
         })
     }
   );
-
 
 });
 
